@@ -17,13 +17,6 @@
             height: 100vh;
         }
         
-        /* Estilo minimalista para las formas KML */
-        .leaflet-overlay-pane path {
-            stroke: #FF5722 !important; /* Borde naranja */
-            stroke-width: 2 !important;
-            fill-opacity: 0 !important; /* Sin relleno */
-        }
-        
         #alerta-container {
             position: fixed;
             bottom: 10px;
@@ -219,12 +212,10 @@
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-    <script src="https://unpkg.com/leaflet-omnivore@2.4.0/leaflet-omnivore.min.js"></script>
     <script>
         const SHEETBEST_URL = "https://api.sheetbest.com/sheets/a09070af-7ba6-4d20-8e58-edf6aad4513c/tabs/Hoja 4";
         const DISTANCIA_ALERTA_KM = 0.5;
         const INTERVALO_MONITOREO = 3000;
-        const KML_URL = "zonas.kml";  // Asegúrate de tener este archivo en la misma carpeta
         
         const HEATMAP_CONFIG = {
             radius: 35,       
@@ -248,25 +239,6 @@
         let map;
         let heatmapLayer = null;
         let heatmapActive = false;
-        let kmlLayer = null;
-
-        // Función simplificada para cargar KML (solo formas)
-        function cargarKML() {
-            if (kmlLayer) {
-                map.removeLayer(kmlLayer);
-            }
-            
-            kmlLayer = omnivore.kml(KML_URL)
-                .on('ready', function() {
-                    // Fuerza el estilo para todas las formas
-                    document.querySelectorAll('.leaflet-overlay-pane path').forEach(path => {
-                        path.style.stroke = '#FF5722';
-                        path.style.strokeWidth = '2px';
-                        path.style.fillOpacity = '0';
-                    });
-                })
-                .addTo(map);
-        }
 
         function mostrarTabla() {
             document.getElementById('tabla-vehiculos-container').style.display = 'block';
@@ -438,9 +410,6 @@
                 if (heatmapActive) {
                     generarHeatmap();
                 }
-                
-                // Cargar el KML (solo formas)
-                cargarKML();
                 
                 map.locate({
                     setView: false,
