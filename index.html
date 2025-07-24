@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Alerta Vehículos Quemados - Heatmap ULTRA</title>
+    <title>Vehículos Quemados</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -181,7 +181,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Dirección</th>
-                    <th>Coordenadas</th>
+                    <th>Delegación</th>                    
                     <th>Descripción</th>
                     <th>Estado</th>
                     <th>Fecha Levantado</th>
@@ -271,7 +271,7 @@
                 tr.innerHTML = `
                     <td>${v.ID}</td>
                     <td>${v.Direccion || 'N/A'}</td>
-                    <td>${v.Coordenadas || 'N/A'}</td>
+                    <td>${v.Delegación || 'N/A'}</td>
                     <td>${v.Descripcion || 'N/A'}</td>
                     <td><span class="badge ${estado}">${textoEstado}</span></td>
                     <td>${v.fecha_levantado || 'N/A'}</td>
