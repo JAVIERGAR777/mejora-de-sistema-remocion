@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Alerta Vehículos Quemados - Heatmap ULTRA + Zonas KML</title>
+    <title>Alerta Vehículos Quemados - Heatmap ULTRA + KML</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <!-- Librería para cargar KML -->
     <script src="https://unpkg.com/leaflet-omnivore@2.4.0/leaflet-omnivore.min.js"></script>
     <style>
         body {
@@ -19,11 +18,10 @@
             height: 100vh;
         }
         
-        /* Estilos personalizados para el KML (bordes sin relleno) */
         .kml-layer {
-            stroke: #FF5722; /* Color del borde */
+            stroke: #FF5722;
             stroke-width: 2;
-            fill-opacity: 0; /* Sin relleno */
+            fill-opacity: 0;
         }
         
         #alerta-container {
@@ -225,7 +223,7 @@
         const SHEETBEST_URL = "https://api.sheetbest.com/sheets/a09070af-7ba6-4d20-8e58-edf6aad4513c/tabs/Hoja 4";
         const DISTANCIA_ALERTA_KM = 0.5;
         const INTERVALO_MONITOREO = 3000;
-        const KML_URL = "https://raw.githubusercontent.com/JAVIERGAR777/mejora-de-sistema-remocion/main/zonas.kml";
+        const KML_URL = "zonas.kml";  // Archivo local en la misma carpeta
         
         const HEATMAP_CONFIG = {
             radius: 35,       
@@ -251,27 +249,24 @@
         let heatmapActive = false;
         let kmlLayer = null;
 
-    function cargarKML() {
-        if (kmlLayer) {
-            map.removeLayer(kmlLayer);
-        }
-        
-        // Opción 1: Forma más clara (recomendada)
-        kmlLayer = omnivore.kml(KML_URL)
-            .on('ready', function() {
-                this.eachLayer(function(layer) {
-                    layer.setStyle({
-                        color: '#FF5722',
-                        weight: 2,
-                        fillOpacity: 0
+        function cargarKML() {
+            if (kmlLayer) map.removeLayer(kmlLayer);
+            
+            kmlLayer = omnivore.kml(KML_URL)
+                .on('ready', function() {
+                    this.eachLayer(function(layer) {
+                        layer.setStyle({
+                            color: '#FF5722',
+                            weight: 2,
+                            fillOpacity: 0
+                        });
+                        
+                        if (layer.feature && layer.feature.properties && layer.feature.properties.name) {
+                            layer.bindPopup(layer.feature.properties.name);
+                        }
                     });
-                    
-                    if (layer.feature && layer.feature.properties && layer.feature.properties.name) {
-                        layer.bindPopup(layer.feature.properties.name);
-                    }
-                });
-            })
-            .addTo(map);
+                })
+                .addTo(map);
         }
 
         function mostrarTabla() {
