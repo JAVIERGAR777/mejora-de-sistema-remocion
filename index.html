@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Alerta Vehículos Quemados - Heatmap ULTRA + KML</title>
+    <title>Alerta Vehículos Quemados - Heatmap ULTRA</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -17,11 +17,11 @@
             height: 100vh;
         }
         
-        /* Estilos para el KML */
-        .kml-layer {
-            stroke: #FF5722; /* Borde naranja */
-            stroke-width: 2;
-            fill-opacity: 0; /* Sin relleno */
+        /* Estilo minimalista para las formas KML */
+        .leaflet-overlay-pane path {
+            stroke: #FF5722 !important; /* Borde naranja */
+            stroke-width: 2 !important;
+            fill-opacity: 0 !important; /* Sin relleno */
         }
         
         #alerta-container {
@@ -250,30 +250,22 @@
         let heatmapActive = false;
         let kmlLayer = null;
 
-        // Función para cargar el KML
+        // Función simplificada para cargar KML (solo formas)
         function cargarKML() {
             if (kmlLayer) {
                 map.removeLayer(kmlLayer);
             }
             
-            kmlLayer = omnivore.kml(KML_URL, null, L.geoJSON(null, {
-                style: {
-                    color: '#FF5722',
-                    weight: 2,
-                    fillOpacity: 0
-                },
-                onEachFeature: function(feature, layer) {
-                    if (feature.properties && feature.properties.name) {
-                        layer.bindPopup(feature.properties.name);
-                    }
-                }
-            })).addTo(map);
-            
-            kmlLayer.on('ready', function() {
-                console.log('KML cargado correctamente');
-            }).on('error', function(e) {
-                console.error('Error cargando KML:', e.error);
-            });
+            kmlLayer = omnivore.kml(KML_URL)
+                .on('ready', function() {
+                    // Fuerza el estilo para todas las formas
+                    document.querySelectorAll('.leaflet-overlay-pane path').forEach(path => {
+                        path.style.stroke = '#FF5722';
+                        path.style.strokeWidth = '2px';
+                        path.style.fillOpacity = '0';
+                    });
+                })
+                .addTo(map);
         }
 
         function mostrarTabla() {
@@ -447,7 +439,7 @@
                     generarHeatmap();
                 }
                 
-                // Cargar el KML
+                // Cargar el KML (solo formas)
                 cargarKML();
                 
                 map.locate({
