@@ -251,23 +251,27 @@
         let heatmapActive = false;
         let kmlLayer = null;
 
-        function cargarKML() {
-            if (kmlLayer) map.removeLayer(kmlLayer);
-            
-            kmlLayer = omnivore.kml(KML_URL, null, L.geoJson(null, {
-                style: function(feature) {
-                    return {
+    function cargarKML() {
+        if (kmlLayer) {
+            map.removeLayer(kmlLayer);
+        }
+        
+        // Opción 1: Forma más clara (recomendada)
+        kmlLayer = omnivore.kml(KML_URL)
+            .on('ready', function() {
+                this.eachLayer(function(layer) {
+                    layer.setStyle({
                         color: '#FF5722',
                         weight: 2,
                         fillOpacity: 0
-                    };
-                },
-                onEachFeature: function(feature, layer) {
-                    if (feature.properties && feature.properties.name) {
-                        layer.bindPopup(feature.properties.name);
+                    });
+                    
+                    if (layer.feature && layer.feature.properties && layer.feature.properties.name) {
+                        layer.bindPopup(layer.feature.properties.name);
                     }
-                }
-            }).addTo(map);
+                });
+            })
+            .addTo(map);
         }
 
         function mostrarTabla() {
