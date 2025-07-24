@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Alerta Vehículos Quemados - UltraPreciso PRO+</title>
+    <title>Alerta Vehículos Quemados - Heatmap ULTRA</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -155,13 +155,19 @@
             position: fixed;
             top: 110px;
             right: 15px;
-            background: rgba(0,0,0,0.7);
+            background: linear-gradient(135deg, #ff8c00, #ff4500);
             color: white;
             padding: 8px 12px;
             border-radius: 20px;
             z-index: 1000;
             font-size: 14px;
             cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+        #heatmap-control:hover {
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -210,6 +216,20 @@
         const SHEETBEST_URL = "https://api.sheetbest.com/sheets/a09070af-7ba6-4d20-8e58-edf6aad4513c/tabs/Hoja 4";
         const DISTANCIA_ALERTA_KM = 0.5;
         const INTERVALO_MONITOREO = 3000;
+        
+        const HEATMAP_CONFIG = {
+            radius: 35,       
+            blur: 20,         
+            maxZoom: 18,
+            minOpacity: 0.8,   
+            gradient: {      
+                0.3: 'rgba(0,150,255,0.8)',  
+                0.5: 'rgba(0,255,255,0.9)',  
+                0.7: 'rgba(255,255,0,1)',   
+                0.9: 'rgba(255,100,0,1)',     
+                1.0: 'rgba(255,0,0,1)'       
+            }
+        };
         
         let vehiculos = [];
         let todosVehiculos = [];
@@ -262,7 +282,13 @@
 
         function toggleHeatmap() {
             heatmapActive = !heatmapActive;
-            document.getElementById('heatmap-control').textContent = heatmapActive ? '🗺️ Ocultar Calor' : '🔥 Mapa de Calor';
+            const control = document.getElementById('heatmap-control');
+            control.textContent = heatmapActive ? '🗺️ Ocultar Mapa de Calor' : '🔥 Mapa de Calor';
+            
+            control.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                control.style.transform = 'scale(1)';
+            }, 300);
             
             if (heatmapActive) {
                 generarHeatmap();
@@ -279,14 +305,9 @@
                 map.removeLayer(heatmapLayer);
             }
             
-            const puntosCalor = vehiculos.map(v => [v.lat, v.lng, 0.6]); // [lat, lng, intensidad]
+            const puntosCalor = vehiculos.map(v => [v.lat, v.lng, 1.2]);
             
-            heatmapLayer = L.heatLayer(puntosCalor, {
-                radius: 25,
-                blur: 15,
-                maxZoom: 17,
-                gradient: {0.4: 'blue', 0.6: 'lime', 0.8: 'yellow', 1.0: 'red'}
-            }).addTo(map);
+            heatmapLayer = L.heatLayer(puntosCalor, HEATMAP_CONFIG).addTo(map);
         }
 
         function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -302,11 +323,11 @@
 
         function crearMarcadorEstable(vehiculo) {
             const marker = L.circleMarker([vehiculo.lat, vehiculo.lng], {
-                color: '#ff0000',
-                fillColor: '#ff4444',
+                color: '#0833A2',
+                fillColor: '#0833A2',
                 fillOpacity: 0.9,
-                radius: 10,
-                weight: 5
+                radius: 4,
+                weight: 2
             }).addTo(map);
             
             marker.bindPopup(`
@@ -360,15 +381,10 @@
                 
                 const registrosUnicos = {};
                 data.forEach(v => {
-                    if (!registrosUnicos[v.ID]) {
-                        registrosUnicos[v.ID] = v;
-                    } 
-                    else if (v.fecha_levantado && registrosUnicos[v.ID].fecha_levantado) {
-                        if (new Date(v.fecha_levantado) > new Date(registrosUnicos[v.ID].fecha_levantado)) {
-                            registrosUnicos[v.ID] = v;
-                        }
-                    }
-                    else if (v.fecha_levantado && !registrosUnicos[v.ID].fecha_levantado) {
+                    if (!registrosUnicos[v.ID] || 
+                        (v.fecha_levantado && 
+                         (!registrosUnicos[v.ID].fecha_levantado || 
+                          new Date(v.fecha_levantado) > new Date(registrosUnicos[v.ID].fecha_levantado)))) {
                         registrosUnicos[v.ID] = v;
                     }
                 });
