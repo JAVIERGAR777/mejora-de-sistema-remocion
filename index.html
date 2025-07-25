@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Alerta Vehículos Quemados - Heatmap ULTRA</title>
+    <title>Alerta Vehículos - Editor de Polígonos</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <style>
         body {
             margin: 0;
@@ -169,6 +170,116 @@
         #heatmap-control:hover {
             transform: scale(1.05);
         }
+        
+        #poligonos-control {
+            position: fixed;
+            top: 160px;
+            right: 15px;
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            z-index: 1000;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+        #poligonos-control:hover {
+            transform: scale(1.05);
+        }
+        
+        #editor-poligonos {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 300px;
+            display: none;
+        }
+        
+        #editor-poligonos h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+        
+        #btn-abrir-editor {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .btn-accion {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        #btn-guardar-poligono {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        #btn-cancelar-poligono {
+            background: #f44336;
+            color: white;
+        }
+        
+        #condicion-poligono {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .coordenadas-poligono {
+            font-family: monospace;
+            font-size: 12px;
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            word-break: break-all;
+            margin: 10px 0;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        
+        .poligono-activo {
+            fillColor: "red",
+            color: "darkred",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.5
+        }
+        
+        .poligono-inactivo {
+            fillColor: "gray",
+            color: "darkgray",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.3
+        }
     </style>
 </head>
 <body>
@@ -204,6 +315,21 @@
     <div id="contador-alertas">Alertas: <span id="contador-alertas-num2">0</span></div>
     <div id="gps-status">📍 Mi ubicación</div>
     <div id="heatmap-control" onclick="toggleHeatmap()">🔥 Mapa de Calor</div>
+    <div id="poligonos-control" onclick="togglePoligonos()">🟦 Mostrar Polígonos</div>
+    <button id="btn-abrir-editor" onclick="toggleEditorPoligonos()">✏️ Editor de Polígonos</button>
+    
+    <div id="editor-poligonos">
+        <h3>Editor de Polígonos</h3>
+        <p>Dibuja un polígono en el mapa haciendo clic para añadir vértices.</p>
+        <div class="coordenadas-poligono" id="coordenadas-poligono">Coordenadas aparecerán aquí...</div>
+        <select id="condicion-poligono">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+        </select>
+        <button id="btn-guardar-poligono" class="btn-accion" onclick="guardarPoligono()">💾 Guardar Polígono</button>
+        <button id="btn-cancelar-poligono" class="btn-accion" onclick="cancelarPoligono()">❌ Cancelar</button>
+    </div>
+
     <div id="map"></div>
 
     <audio id="alerta-sonido" preload="auto">
@@ -212,8 +338,10 @@
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script>
         const SHEETBEST_URL = "https://api.sheetbest.com/sheets/a09070af-7ba6-4d20-8e58-edf6aad4513c/tabs/Hoja 4";
+        const POLIGONOS_URL = "https://api.sheetbest.com/sheets/a09070af-7ba6-4d20-8e58-edf6aad4513c/tabs/poligonos";
         const DISTANCIA_ALERTA_KM = 0.5;
         const INTERVALO_MONITOREO = 3000;
         
@@ -239,6 +367,13 @@
         let map;
         let heatmapLayer = null;
         let heatmapActive = false;
+        let poligonos = [];
+        let poligonosLayer = null;
+        let poligonosActive = false;
+        
+        let drawControl;
+        let drawnItems = new L.FeatureGroup();
+        let currentPolygon = null;
 
         function mostrarTabla() {
             document.getElementById('tabla-vehiculos-container').style.display = 'block';
@@ -300,6 +435,26 @@
             }
         }
 
+        function togglePoligonos() {
+            poligonosActive = !poligonosActive;
+            const control = document.getElementById('poligonos-control');
+            control.textContent = poligonosActive ? '🟦 Ocultar Polígonos' : '🟦 Mostrar Polígonos';
+            
+            control.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                control.style.transform = 'scale(1)';
+            }, 300);
+            
+            if (poligonosActive) {
+                mostrarPoligonos();
+            } else {
+                if (poligonosLayer) {
+                    map.removeLayer(poligonosLayer);
+                    poligonosLayer = null;
+                }
+            }
+        }
+
         function generarHeatmap() {
             if (heatmapLayer) {
                 map.removeLayer(heatmapLayer);
@@ -308,6 +463,44 @@
             const puntosCalor = vehiculos.map(v => [v.lat, v.lng, 1.2]);
             
             heatmapLayer = L.heatLayer(puntosCalor, HEATMAP_CONFIG).addTo(map);
+        }
+
+        function mostrarPoligonos() {
+            if (poligonosLayer) {
+                map.removeLayer(poligonosLayer);
+            }
+            
+            poligonosLayer = L.layerGroup().addTo(map);
+            
+            poligonos.forEach(poligono => {
+                const coordenadas = poligono.coordenadas.split(';').map(coord => {
+                    const [lat, lng] = coord.split(',').map(Number);
+                    return [lat, lng];
+                });
+                
+                const estilo = poligono.condicion === 'Activo' ? {
+                    fillColor: "red",
+                    color: "darkred",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.5
+                } : {
+                    fillColor: "gray",
+                    color: "darkgray",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.3
+                };
+                
+                const polygon = L.polygon(coordenadas, estilo).addTo(poligonosLayer);
+                
+                polygon.bindPopup(`
+                    <div class="popup-custom">
+                        <h4 style="margin: 0 0 8px 0;">Polígono #${poligono.ID}</h4>
+                        <p><strong>Estado:</strong> ${poligono.condicion}</p>
+                    </div>
+                `);
+            });
         }
 
         function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -374,6 +567,121 @@
             }
         }
 
+        function toggleEditorPoligonos() {
+            const editor = document.getElementById('editor-poligonos');
+            editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+            
+            if (editor.style.display === 'block') {
+                iniciarDibujoPoligono();
+            } else {
+                cancelarDibujoPoligono();
+            }
+        }
+
+        function iniciarDibujoPoligono() {
+            map.removeLayer(drawnItems);
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+            
+            drawControl = new L.Control.Draw({
+                draw: {
+                    polygon: {
+                        shapeOptions: {
+                            color: 'blue',
+                            fillOpacity: 0.3
+                        },
+                        allowIntersection: false,
+                        showArea: true
+                    },
+                    polyline: false,
+                    rectangle: false,
+                    circle: false,
+                    marker: false,
+                    circlemarker: false
+                },
+                edit: {
+                    featureGroup: drawnItems
+                }
+            });
+            
+            map.addControl(drawControl);
+            
+            map.on(L.Draw.Event.CREATED, function(e) {
+                const layer = e.layer;
+                drawnItems.addLayer(layer);
+                currentPolygon = layer;
+                actualizarCoordenadasPoligono();
+                
+                layer.on('edit', function() {
+                    actualizarCoordenadasPoligono();
+                });
+            });
+        }
+
+        function actualizarCoordenadasPoligono() {
+            if (currentPolygon) {
+                const coords = currentPolygon.getLatLngs()[0]; 
+                const coordString = coords.map(coord => `${coord.lat},${coord.lng}`).join(';');
+                document.getElementById('coordenadas-poligono').textContent = coordString;
+            }
+        }
+
+        function cancelarDibujoPoligono() {
+            if (drawControl) {
+                map.removeControl(drawControl);
+            }
+            map.removeLayer(drawnItems);
+            currentPolygon = null;
+            document.getElementById('coordenadas-poligono').textContent = "Coordenadas aparecerán aquí...";
+        }
+
+        async function guardarPoligono() {
+            if (!currentPolygon) {
+                alert("No hay ningún polígono para guardar");
+                return;
+            }
+            
+            const coords = currentPolygon.getLatLngs()[0];
+            const coordString = coords.map(coord => `${coord.lat},${coord.lng}`).join(';');
+            const condicion = document.getElementById('condicion-poligono').value;
+            
+            try {
+                const payload = {
+                    "ID": Date.now().toString(),
+                    "coordenadas": coordString,
+                    "condicion": condicion
+                };
+                
+                await fetch(POLIGONOS_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                
+                alert("✅ Polígono guardado correctamente");
+                cancelarDibujoPoligono();
+                document.getElementById('editor-poligonos').style.display = 'none';
+                
+                await cargarPoligonos();
+                if (poligonosActive) {
+                    mostrarPoligonos();
+                }
+            } catch (error) {
+                console.error("Error al guardar polígono:", error);
+                alert("❌ Error al guardar el polígono");
+            }
+        }
+
+        async function cargarPoligonos() {
+            try {
+                const response = await fetch(POLIGONOS_URL);
+                const data = await response.json();
+                poligonos = data;
+            } catch (error) {
+                console.error("Error al cargar polígonos:", error);
+            }
+        }
+
         async function init() {
             try {
                 const response = await fetch(SHEETBEST_URL);
@@ -409,6 +717,11 @@
                 
                 if (heatmapActive) {
                     generarHeatmap();
+                }
+                
+                await cargarPoligonos();
+                if (poligonosActive) {
+                    mostrarPoligonos();
                 }
                 
                 map.locate({
